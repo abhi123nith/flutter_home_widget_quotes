@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,6 +33,8 @@ import java.net.URL
 import androidx.work.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import es.antonborri.home_widget.HomeWidgetBackgroundIntent
+import es.antonborri.home_widget.actionStartActivity
 
 class QuoteGlanceWidget : GlanceAppWidget() {
     override val stateDefinition = HomeWidgetGlanceStateDefinition()
@@ -60,7 +63,7 @@ class QuoteGlanceWidget : GlanceAppWidget() {
 
                 CoroutineScope(Dispatchers.IO).launch {
                     val newQuote = fetchAutoQuote()
-                    Log.d("Fe", "Quotes Fetched")
+//                    Log.d("Fe", "Quotes Fetched")
 
                     val prefs = context.getSharedPreferences("home_widget_prefs", Context.MODE_PRIVATE)
                     prefs.edit().putString("quote", newQuote).apply()
@@ -107,47 +110,46 @@ class QuoteGlanceWidget : GlanceAppWidget() {
         Box(
             modifier = GlanceModifier
                 .background(Color.White)
-                .padding(16.dp)
+                .padding(8.dp)  // Reduced padding for a more compact layout
+                .clickable(onClick = actionStartActivity<MainActivity>(context))
         ) {
             Column(
-                modifier = GlanceModifier.fillMaxSize(),
+//                modifier = GlanceModifier.(),
                 verticalAlignment = Alignment.Vertical.CenterVertically,
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally
             ) {
-                Text(
-                    text = "Daily Quotes: ",
-                    style = TextStyle(fontSize = 20.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold),
-                )
+                Spacer(GlanceModifier.size(15.dp))
                 Text(
                     text = quote ?: "Loading...",
-                    style = TextStyle(fontSize = 18.sp, textAlign = TextAlign.Center, fontStyle = FontStyle.Italic),
+                    style = TextStyle(fontSize = 17.sp, textAlign = TextAlign.Center, fontStyle = FontStyle.Italic),
                 )
-                Spacer(GlanceModifier.defaultWeight())
+                Spacer(GlanceModifier.size(30.dp))
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.End
                 ) {
                     Box(
-                        modifier = GlanceModifier.run { clickable(onClick = actionRunCallback<FetchQuoteAction>()) }
+                        modifier = GlanceModifier.clickable(onClick = actionRunCallback<FetchQuoteAction>())
                     ) {
                         Image(
                             provider = ImageProvider(R.drawable.baseline_add_24),
                             contentDescription = "Refresh",
                             colorFilter = ColorFilter.tint(ColorProvider(Color.Black)),
-                            modifier = GlanceModifier.size(32.dp)
+                            modifier = GlanceModifier.size(24.dp)  // Smaller image for minimal widget
                         )
                     }
                 }
             }
         }
     }
+
 }
 
 
 class FetchQuoteAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val newQuote = fetchQuoteFromAPI()
-        Log.d("Fe", "Quotes Fetched")
+//        Log.d("Fe", "Quotes Fetched")
         // Save the new quote in SharedPreferences
         val prefs = context.getSharedPreferences("home_widget_prefs", Context.MODE_PRIVATE)
         prefs.edit().putString("quote", newQuote).apply()

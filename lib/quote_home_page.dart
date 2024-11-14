@@ -82,38 +82,41 @@ class _QuoteHomePageState extends State<QuoteHomePage> with WidgetsBindingObserv
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-                'Current Quote:',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold
-              ),
-            ),
-            const SizedBox(height: 20,),
-            if (quoteProvider.isFetching)
-              const CircularProgressIndicator()
-            else
-              Text(
-                quoteProvider.currentQuote,
-                textAlign: TextAlign.center,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const Text(
+                  'Current Quote:',
                 style: TextStyle(
-                  fontSize: 20,
-                  fontStyle: FontStyle.italic
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold
                 ),
               ),
-            const SizedBox(height: 30,),
-            ElevatedButton(
-              onPressed: _fetchNewQuote,
-              child: const Text('Fetch New Quote'),
-            ),
-            GestureDetector(
-              onTap: _requestToPinWidget,
-              child: const Text('Pin Widget to Home Screen'),
-            ),
-          ],
+              const SizedBox(height: 20,),
+              if (quoteProvider.isFetching)
+                const CircularProgressIndicator()
+              else
+                Text(
+                  quoteProvider.currentQuote,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontStyle: FontStyle.italic
+                  ),
+                ),
+              const SizedBox(height: 30,),
+              ElevatedButton(
+                onPressed: _fetchNewQuote,
+                child: const Text('Fetch New Quote'),
+              ),
+              GestureDetector(
+                onTap: _requestToPinWidget,
+                child: const Text('Pin Widget to Home Screen'),
+              ),
+            ],
+          ),
         ),
       ),
     );
