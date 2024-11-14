@@ -3,10 +3,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:home_widget_counter/dash_with_sign.dart';
+import 'package:home_widget_counter/provider/quotes_provider.dart';
+import 'package:home_widget_counter/quote_home_page.dart';
+import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Set AppGroup Id. This is needed for iOS Apps to talk to their WidgetExtensions
+  await HomeWidget.setAppGroupId('group.es.antonborri.homeWidgetCounter');
   await HomeWidget.setAppGroupId('group.es.antonborri.homeWidgetCounter');
   // Register an Interactivity Callback. It is necessary that this method is static and public
   await HomeWidget.registerInteractivityCallback(interactiveCallback);
@@ -76,12 +80,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData.light(
-        useMaterial3: false,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => QuoteProvider())
+      ],
+      child: MaterialApp(
+        title: 'Flutter Demo',
+        theme: ThemeData.light(
+          useMaterial3: false,
+        ),
+        home: const MyHomePage(title: 'Flutter Demo Home Page'),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
@@ -171,6 +180,14 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
               },
               child: const Text('Clear'),
             ),
+            InkWell(
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => QuoteHomePage(title: "Quotes")));
+              },
+              child: Text(
+                "Goto Next Page"
+              ),
+            )
           ],
         ),
       ),
@@ -182,3 +199,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     );
   }
 }
+
+
+
+
