@@ -35,6 +35,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import es.antonborri.home_widget.actionStartActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.embedding.engine.dart.DartExecutor
+import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.CountDownLatch
 
 class QuoteGlanceWidget : GlanceAppWidget() {
     override val stateDefinition = HomeWidgetGlanceStateDefinition()
@@ -59,11 +64,8 @@ class QuoteGlanceWidget : GlanceAppWidget() {
         val handler = Handler(Looper.getMainLooper())
         val runnable = object : Runnable {
             override fun run() {
-                Log.d("Trig", "Triggered Fetch Quote")
-
                 CoroutineScope(Dispatchers.IO).launch {
-                    val newQuote = fetchAutoQuote()
-//                    Log.d("Fe", "Quotes Fetched")
+                    val newQuote = fetchQuoteBasedOnPreference(context)
 
                     val prefs = context.getSharedPreferences("home_widget_prefs", Context.MODE_PRIVATE)
                     prefs.edit().putString("quote", newQuote).apply()
@@ -74,14 +76,27 @@ class QuoteGlanceWidget : GlanceAppWidget() {
                     }
                 }
 
-                handler.postDelayed(this, 1*60 * 1000)  // Update every 1 minute
+                handler.postDelayed(this, 1*60*1000)  // Update every 1 minute
             }
         }
 
         handler.post(runnable)
     }
 
-    private fun fetchAutoQuote(): String {
+    private suspend fun fetchQuoteBasedOnPreference(context: Context): String {
+        return withContext(Dispatchers.IO) {
+            val isApiEnabled = SettingsHelper.isApiQuotesEnabled(context)
+//            Log.d("Message", "The Api values is : ${isApiEnabled}")
+            return@withContext if (isApiEnabled) {
+//                fetchQuoteFromFlutter(context)
+                fetchQuoteFromAPI()
+            } else {
+                fetchQuoteFromFlutter(context)
+            }
+        }
+    }
+
+    private fun fetchQuoteFromAPI(): String {
         return try {
             val url = URL("https://staticapis.pragament.com/daily/quotes-en-gratitude.json")
             val connection = url.openConnection() as HttpURLConnection
@@ -95,12 +110,74 @@ class QuoteGlanceWidget : GlanceAppWidget() {
                 val quoteObject = quotesArray.getJSONObject(randomIndex)
                 quoteObject.getString("quote")
             } else {
-                "Error fetching quote"
+                "Error fetching quote from API."
             }
         } catch (e: Exception) {
-            "Error fetching quote"
+            "Error fetching quote from API."
         }
     }
+
+    private fun fetchQuoteFromFlutter(context: Context): String {
+        var quote = "Error fetching quote"
+        val handler = Handler(Looper.getMainLooper())
+
+        val latch = CountDownLatch(1) // To synchronize the main thread call
+        handler.post {
+            try {
+                val flutterEngine = FlutterEngine(context).apply {
+                    dartExecutor.executeDartEntrypoint(DartExecutor.DartEntrypoint.createDefault())
+                }
+                val methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quote_channel")
+//                Log.d("fetchQuoteFromFlutter", "MethodChannel initialized")
+
+                methodChannel.invokeMethod("getQuoteFromHive", null, object : MethodChannel.Result {
+                    override fun success(result: Any?) {
+                        quote = result as? String ?: "No quotes found."
+                        Log.d("fetchQuoteFromFlutter", "Fetched quote: $quote")
+                        latch.countDown() // Signal completion
+                    }
+
+                    override fun error(errorCode: String, errorMessage: String?, errorDetails: Any?) {
+                        quote = "Error: $errorMessage"
+                        latch.countDown() // Signal completion
+                    }
+
+                    override fun notImplemented() {
+                        quote = "Method not implemented"
+                        latch.countDown() // Signal completion
+                    }
+                })
+            } catch (e: Exception) {
+                Log.e("fetchQuoteFromFlutter", "Error fetching quote: ${e.message}")
+                latch.countDown() // Signal completion
+            }
+        }
+
+        latch.await() // Wait for the main thread to finish processing
+        return quote
+    }
+
+
+//    private fun fetchAutoQuote(): String {
+//        return try {
+//            val url = URL("https://staticapis.pragament.com/daily/quotes-en-gratitude.json")
+//            val connection = url.openConnection() as HttpURLConnection
+//            connection.requestMethod = "GET"
+//            connection.connect()
+//
+//            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+//                val response = connection.inputStream.bufferedReader().use { it.readText() }
+//                val quotesArray = JSONObject(response).getJSONArray("quotes")
+//                val randomIndex = (0 until quotesArray.length()).random()
+//                val quoteObject = quotesArray.getJSONObject(randomIndex)
+//                quoteObject.getString("quote")
+//            } else {
+//                "Error fetching quote"
+//            }
+//        } catch (e: Exception) {
+//            "Error fetching quote"
+//        }
+//    }
 
     @Composable
     private fun GlanceContent(context: Context, currentState: HomeWidgetGlanceState) {
@@ -114,16 +191,15 @@ class QuoteGlanceWidget : GlanceAppWidget() {
                 .clickable(onClick = actionStartActivity<MainActivity>(context))
         ) {
             Column(
-//                modifier = GlanceModifier.(),
-                verticalAlignment = Alignment.Vertical.CenterVertically,
+                verticalAlignment = Alignment.Vertical.Top,
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally
             ) {
-                Spacer(GlanceModifier.size(15.dp))
+                Spacer(GlanceModifier.size(10.dp))
                 Text(
                     text = quote ?: "Loading...",
                     style = TextStyle(fontSize = 17.sp, textAlign = TextAlign.Center, fontStyle = FontStyle.Italic),
                 )
-                Spacer(GlanceModifier.size(30.dp))
+                Spacer(GlanceModifier.size(15.dp))
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.End
@@ -135,20 +211,19 @@ class QuoteGlanceWidget : GlanceAppWidget() {
                             provider = ImageProvider(R.drawable.baseline_add_24),
                             contentDescription = "Refresh",
                             colorFilter = ColorFilter.tint(ColorProvider(Color.Black)),
-                            modifier = GlanceModifier.size(24.dp)  // Smaller image for minimal widget
+                            modifier = GlanceModifier.size(24.dp)
                         )
                     }
                 }
             }
         }
     }
-
 }
 
 
 class FetchQuoteAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        val newQuote = fetchQuoteFromAPI()
+        val newQuote = fetchQuoteBasedOnPreference(context);
 //        Log.d("Fe", "Quotes Fetched")
         // Save the new quote in SharedPreferences
         val prefs = context.getSharedPreferences("home_widget_prefs", Context.MODE_PRIVATE)
@@ -158,6 +233,17 @@ class FetchQuoteAction : ActionCallback {
         QuoteGlanceWidget().update(context, glanceId)
     }
 
+    private suspend fun fetchQuoteBasedOnPreference(context: Context): String {
+        return withContext(Dispatchers.IO) {
+            val isApiEnabled = SettingsHelper.isApiQuotesEnabled(context)
+            Log.d("Message", "The Api values is : ${isApiEnabled}")
+            return@withContext if (isApiEnabled) {
+                fetchQuoteFromAPI()
+            } else {
+                fetchQuoteFromFlutter(context)
+            }
+        }
+    }
     private suspend fun fetchQuoteFromAPI(): String = withContext(Dispatchers.IO) {
         try {
             val url = URL("https://staticapis.pragament.com/daily/quotes-en-gratitude.json")
@@ -178,7 +264,46 @@ class FetchQuoteAction : ActionCallback {
             return@withContext "Error fetching quote"
         }
     }
-}
+    private fun fetchQuoteFromFlutter(context: Context): String {
+        var quote = "Error fetching quote"
+        val handler = Handler(Looper.getMainLooper())
 
+        val latch = CountDownLatch(1) // To synchronize the main thread call
+        handler.post {
+            try {
+                val flutterEngine = FlutterEngine(context).apply {
+                    dartExecutor.executeDartEntrypoint(DartExecutor.DartEntrypoint.createDefault())
+                }
+                val methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quote_channel")
+                Log.d("fetchQuoteFromFlutter", "MethodChannel initialized")
+
+                methodChannel.invokeMethod("getQuoteFromHive", null, object : MethodChannel.Result {
+                    override fun success(result: Any?) {
+                        quote = result as? String ?: "No quotes found."
+                        Log.d("fetchQuoteFromFlutter", "Fetched quote: $quote")
+                        latch.countDown() // Signal completion
+                    }
+
+                    override fun error(errorCode: String, errorMessage: String?, errorDetails: Any?) {
+                        quote = "Error: $errorMessage"
+                        latch.countDown() // Signal completion
+                    }
+
+                    override fun notImplemented() {
+                        quote = "Method not implemented"
+                        latch.countDown() // Signal completion
+                    }
+                })
+            } catch (e: Exception) {
+                Log.e("fetchQuoteFromFlutter", "Error fetching quote: ${e.message}")
+                latch.countDown() // Signal completion
+            }
+        }
+
+        latch.await() // Wait for the main thread to finish processing
+        return quote
+    }
+
+}
 
 
