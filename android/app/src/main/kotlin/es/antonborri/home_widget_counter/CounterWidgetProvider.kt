@@ -35,3 +35,27 @@ class CounterWidgetProvider : HomeWidgetProvider() {
         }
     }
 }
+//
+//
+//class QuoteWidgetProvider : AppWidgetProvider() {
+//
+//    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+//        // Loop through each widget instance and update its configuration
+//        for (appWidgetId in appWidgetIds) {
+//            // Fetch the widget-specific font size from SharedPreferences
+//            val prefs = context.getSharedPreferences("widget_prefs_$appWidgetId", Context.MODE_PRIVATE)
+//            val fontSize = prefs.getInt("fontSize", 24)  // Default font size is 24 if not set
+//
+//            // Create RemoteViews to update the widget
+//            val remoteViews = RemoteViews(context.packageName, R.layout.widget_layout)
+//
+//            // Set the font size dynamically based on shared preferences
+//            remoteViews.setTextViewTextSize(R.id.text_quotes, TypedValue.COMPLEX_UNIT_SP, fontSize.toFloat())
+//
+//            // Update the widget with the new layout
+//            appWidgetManager.updateAppWidget(appWidgetId, remoteViews)
+//        }
+//    }
+//
+//
+//}

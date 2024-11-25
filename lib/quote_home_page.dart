@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:home_widget_counter/provider/quotes_provider.dart';
+import 'package:home_widget_counter/widgets/dialogs/widget_config_dialog.dart';
 import 'package:provider/provider.dart';
 
 @pragma('vm:entry-point')
@@ -65,16 +66,6 @@ class _QuoteHomePageState extends State<QuoteHomePage> with WidgetsBindingObserv
     await Provider.of<QuoteProvider>(context, listen: false).fetchQuote();
   }
 
-  Future<void> _requestToPinWidget() async {
-    final isRequestPinSupported = await HomeWidget.isRequestPinWidgetSupported();
-    // print(isRequestPinSupported);
-    if (isRequestPinSupported == true) {
-      await HomeWidget.requestPinWidget(
-        androidName: 'QuoteGlanceWidgetReceiver',
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final quoteProvider = Provider.of<QuoteProvider>(context);
@@ -112,7 +103,9 @@ class _QuoteHomePageState extends State<QuoteHomePage> with WidgetsBindingObserv
                 child: const Text('Fetch New Quote'),
               ),
               GestureDetector(
-                onTap: _requestToPinWidget,
+                onTap: () async {
+                  await showForm(context, "Widget Configuration");
+                },
                 child: const Text('Pin Widget to Home Screen'),
               ),
             ],

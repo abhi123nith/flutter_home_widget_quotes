@@ -35,6 +35,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import es.antonborri.home_widget.actionStartActivity
+import android.content.SharedPreferences
+import androidx.preference.PreferenceManager
 
 class QuoteGlanceWidget : GlanceAppWidget() {
     override val stateDefinition = HomeWidgetGlanceStateDefinition()
@@ -63,9 +65,10 @@ class QuoteGlanceWidget : GlanceAppWidget() {
 
                 CoroutineScope(Dispatchers.IO).launch {
                     val newQuote = fetchAutoQuote()
-//                    Log.d("Fe", "Quotes Fetched")
+                    Log.d("Fe", "Quotes Fetched")
 
-                    val prefs = context.getSharedPreferences("home_widget_prefs", Context.MODE_PRIVATE)
+                    val prefs =
+                        context.getSharedPreferences("home_widget_prefs", Context.MODE_PRIVATE)
                     prefs.edit().putString("quote", newQuote).apply()
 
                     // Update widget only if glanceId is still valid
@@ -74,7 +77,7 @@ class QuoteGlanceWidget : GlanceAppWidget() {
                     }
                 }
 
-                handler.postDelayed(this, 1*60 * 1000)  // Update every 1 minute
+                handler.postDelayed(this, 1 * 60 * 1000)  // Update every 1 minute
             }
         }
 
@@ -105,7 +108,20 @@ class QuoteGlanceWidget : GlanceAppWidget() {
     @Composable
     private fun GlanceContent(context: Context, currentState: HomeWidgetGlanceState) {
         val prefs = context.getSharedPreferences("home_widget_prefs", Context.MODE_PRIVATE)
+        val prefs1 = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val quote = prefs.getString("quote", "Welcome to Gratitude Quotes")
+        val fontSize: String = prefs1.getString("flutter.fontSize", "25").toString()
+        Log.d("font", fontSize);
+        if (!prefs.contains("fontSize_$glanceId")){
+            prefs.edit().putString("fontSize_$glanceId", fontSize).apply()
+        }
+        val fontSize1: String = prefs.getString("fontSize_$glanceId", "25").toString()
+        val floatValue: Float = fontSize1.toFloat()
+       // val myString: String = fontSize.toString()
+        Log.d("font1", fontSize1);
+        Log.d("key", "fontSize_$glanceId");
+//        val myString1: String =prefs1.getString("flutter.size", "small").toString()
+//        Log.d("abc",myString1)
 
         Box(
             modifier = GlanceModifier
@@ -121,7 +137,7 @@ class QuoteGlanceWidget : GlanceAppWidget() {
                 Spacer(GlanceModifier.size(15.dp))
                 Text(
                     text = quote ?: "Loading...",
-                    style = TextStyle(fontSize = 17.sp, textAlign = TextAlign.Center, fontStyle = FontStyle.Italic),
+                    style = TextStyle(fontSize = floatValue.sp,textAlign = TextAlign.Center, fontStyle = FontStyle.Italic),
                 )
                 Spacer(GlanceModifier.size(30.dp))
                 Row(
@@ -142,7 +158,6 @@ class QuoteGlanceWidget : GlanceAppWidget() {
             }
         }
     }
-
 }
 
 
