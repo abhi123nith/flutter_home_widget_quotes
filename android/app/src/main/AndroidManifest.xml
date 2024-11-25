@@ -6,8 +6,6 @@
         android:icon="@mipmap/ic_launcher"
         android:label="home_widget_counter">
 
-        <!-- Commented out the traditional AppWidgetProvider related entries -->
-        <!--
         <receiver
             android:name=".QuoteWidget"
             android:exported="true">
@@ -19,7 +17,7 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/quote_widget_info" />
         </receiver>
-        -->
+
 
         <activity
             android:name=".MainActivity"
@@ -54,8 +52,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- Commented out the traditional QuoteWidgetProvider -->
-        <!--
+
         <receiver android:name=".QuoteWidgetProvider"
             android:exported="true">
             <intent-filter>
@@ -65,9 +62,7 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/quote_widget_info" />
         </receiver>
-        -->
 
-        <!-- Keep the Glance receiver for QuoteGlanceWidget -->
         <receiver android:name=".QuoteGlanceWidgetReceiverSmall"
             android:exported="true"
             android:label="QuoteGlance">
@@ -91,7 +86,7 @@
                 android:resource="@xml/quote_widget_info_large" />
         </receiver>
 
-        <!-- Keep the Counter widget receivers, if applicable -->
+
         <receiver
             android:name=".CounterWidgetProvider"
             android:exported="true">
