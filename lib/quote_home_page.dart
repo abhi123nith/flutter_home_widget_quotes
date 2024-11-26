@@ -6,6 +6,7 @@ import 'package:hive/hive.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:home_widget_counter/presentation/custom_quotes.dart';
 import 'package:home_widget_counter/provider/quotes_provider.dart';
+import 'package:home_widget_counter/widgets/dialogs/widget_config_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
@@ -86,7 +87,6 @@ class _QuoteHomePageState extends State<QuoteHomePage> with WidgetsBindingObserv
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -178,15 +178,21 @@ class _QuoteHomePageState extends State<QuoteHomePage> with WidgetsBindingObserv
                   },
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _fetchNewQuote,
-                  child: const Text('Fetch New Quote'),
-                ),
-                const SizedBox(height: 7,),
-                GestureDetector(
-                  onTap: _requestToPinWidget,
-                  child: const Text('Pin Widget to Home Screen'),
-                ),
+//                 ElevatedButton(
+//                   onPressed: _fetchNewQuote,
+//                   child: const Text('Fetch New Quote'),
+//                 ),
+//               const SizedBox(height: 30,),
+              ElevatedButton(
+                onPressed: _fetchNewQuote,
+                child: const Text('Fetch New Quote'),
+              ),
+              GestureDetector(
+                onTap: () async {
+                  await showForm(context, "Widget Configuration");
+                },
+                child: const Text('Pin Widget to Home Screen'),
+              ),
                 const SizedBox(height: 15,),
                 const Expanded(child: CustomQuotes())
               ],
