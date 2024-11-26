@@ -1,9 +1,18 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:home_widget_counter/presentation/custom_quotes.dart';
 import 'package:home_widget_counter/provider/quotes_provider.dart';
 import 'package:home_widget_counter/widgets/dialogs/widget_config_dialog.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
+
+import 'helper/settings_helper.dart';
+import 'models/quote_model.dart';
+
 
 @pragma('vm:entry-point')
 Future<void> interactiveCallback(Uri? uri) async {
@@ -37,10 +46,13 @@ class QuoteHomePage extends StatefulWidget {
 }
 
 class _QuoteHomePageState extends State<QuoteHomePage> with WidgetsBindingObserver {
+  late Box<QuoteModel> quoteBox;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    quoteBox = Hive.box<QuoteModel>('quotesBox');
 
     // Trigger data fetch only after the first frame is rendered
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -66,38 +78,111 @@ class _QuoteHomePageState extends State<QuoteHomePage> with WidgetsBindingObserv
     await Provider.of<QuoteProvider>(context, listen: false).fetchQuote();
   }
 
+  Future<void> _requestToPinWidget() async {
+    final isRequestPinSupported = await HomeWidget.isRequestPinWidgetSupported();
+    // print(isRequestPinSupported);
+    if (isRequestPinSupported == true) {
+      await HomeWidget.requestPinWidget(
+        androidName: 'QuoteGlanceWidgetReceiver',
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final quoteProvider = Provider.of<QuoteProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              const Text(
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          FutureBuilder<bool>(
+            future: SettingsHelper.isApiQuotesEnabled(),
+            builder: (context, snapshot) {
+              final isApiEnabled = snapshot.data ?? true;
+              return Switch(
+                value: isApiEnabled,
+                onChanged: (value) async {
+                  await SettingsHelper.setApiQuotesEnabled(value);
+                  setState(() {}); // Refresh UI
+                },
+                activeColor: Colors.green,
+                inactiveThumbColor: Colors.red,
+              );
+            },
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 10),
+        child: SizedBox(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                const Text(
                   'Current Quote:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(height: 20,),
-              if (quoteProvider.isFetching)
-                const CircularProgressIndicator()
-              else
-                Text(
-                  quoteProvider.currentQuote,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontStyle: FontStyle.italic
-                  ),
+                const SizedBox(height: 10),
+                FutureBuilder<bool>(
+                  future: SettingsHelper.isApiQuotesEnabled(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const CircularProgressIndicator(); // Show progress while loading settings
+                    }
+
+                    final isApiEnabled = snapshot.data ?? true;
+
+                    if (isApiEnabled) {
+                      if (quoteProvider.isFetching) {
+                        return const CircularProgressIndicator(); // Show progress while fetching from API
+                      } else {
+                        return Text(
+                          quoteProvider.currentQuote,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 20, fontStyle: FontStyle.italic),
+                        );
+                      }
+                    } else {
+                      // Simulate loading state for Hive quotes
+                      final localQuoteFuture = Future.delayed(
+                        const Duration(milliseconds: 700),
+                        _getRandomQuote,
+                      );
+
+                      return FutureBuilder<String?>(
+                        future: localQuoteFuture,
+                        builder: (context, localSnapshot) {
+                          if (localSnapshot.connectionState == ConnectionState.waiting) {
+                            return const CircularProgressIndicator(); // Show progress while loading local quote
+                          }
+
+                          if (localSnapshot.hasError) {
+                            return const Text(
+                              'Error fetching local quote',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 20, fontStyle: FontStyle.italic),
+                            );
+                          }
+
+                          final randomQuote = localSnapshot.data;
+                          return Text(
+                            randomQuote ?? 'No quotes available locally',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 20, fontStyle: FontStyle.italic),
+                          );
+                        },
+                      );
+                    }
+                  },
                 ),
-              const SizedBox(height: 30,),
+                const SizedBox(height: 20),
+//                 ElevatedButton(
+//                   onPressed: _fetchNewQuote,
+//                   child: const Text('Fetch New Quote'),
+//                 ),
+//               const SizedBox(height: 30,),
               ElevatedButton(
                 onPressed: _fetchNewQuote,
                 child: const Text('Fetch New Quote'),
@@ -108,10 +193,21 @@ class _QuoteHomePageState extends State<QuoteHomePage> with WidgetsBindingObserv
                 },
                 child: const Text('Pin Widget to Home Screen'),
               ),
-            ],
+                const SizedBox(height: 15,),
+                const Expanded(child: CustomQuotes())
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+// Helper method to get a random quote from Hive
+  String? _getRandomQuote() {
+    if (quoteBox.isEmpty) return null;
+    final randomIndex = Random().nextInt(quoteBox.length);
+    return quoteBox.getAt(randomIndex)?.quote;
+  }
+
 }

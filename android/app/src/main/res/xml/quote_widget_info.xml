@@ -5,6 +5,7 @@
     android:minHeight="100dp"
     android:maxWidth="400dp"
     android:maxHeight="400dp"
+
     android:updatePeriodMillis="400"
     android:initialLayout="@layout/quote_widget"
     android:configure="com.example.quoteapp.QuoteWidgetConfigureActivity"
