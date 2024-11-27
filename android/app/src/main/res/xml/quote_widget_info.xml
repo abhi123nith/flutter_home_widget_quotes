@@ -11,4 +11,4 @@
     android:configure="com.example.quoteapp.QuoteWidgetConfigureActivity"
     android:widgetCategory="home_screen"
     android:resizeMode="horizontal|vertical"
-    android:initialKeyguardLayout="@layout/quote_widget"></appwidget-provider>
+    android:initialKeyguardLayout="@layout/quote_widget" />

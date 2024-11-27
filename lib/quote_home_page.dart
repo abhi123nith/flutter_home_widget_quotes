@@ -177,12 +177,7 @@ class _QuoteHomePageState extends State<QuoteHomePage> with WidgetsBindingObserv
                     }
                   },
                 ),
-                const SizedBox(height: 20),
-//                 ElevatedButton(
-//                   onPressed: _fetchNewQuote,
-//                   child: const Text('Fetch New Quote'),
-//                 ),
-//               const SizedBox(height: 30,),
+              const SizedBox(height: 30,),
               ElevatedButton(
                 onPressed: _fetchNewQuote,
                 child: const Text('Fetch New Quote'),
@@ -193,18 +188,16 @@ class _QuoteHomePageState extends State<QuoteHomePage> with WidgetsBindingObserv
                 },
                 child: const Text('Pin Widget to Home Screen'),
               ),
-                const SizedBox(height: 15,),
-                const Expanded(child: CustomQuotes())
-              ],
-            ),
+            ],
           ),
         ),
       ),
-    );
+    ));
   }
 
-// Helper method to get a random quote from Hive
+//Helper method to get a random quote from Hive
   String? _getRandomQuote() {
+    final quoteBox = Hive.box<QuoteModel>('quotesBox');
     if (quoteBox.isEmpty) return null;
     final randomIndex = Random().nextInt(quoteBox.length);
     return quoteBox.getAt(randomIndex)?.quote;
